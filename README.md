@@ -22,7 +22,7 @@ Open `http://localhost:5000`. The seed script builds a Rivera household (from th
 Run the tests with:
 
 ```bash
-pytest -q
+python -m pytest -q
 ```
 
 ## How the checklist gets derived
