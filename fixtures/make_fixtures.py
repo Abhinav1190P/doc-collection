@@ -1,6 +1,6 @@
 import os
-import subprocess
 
+from PIL import Image, ImageDraw
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
@@ -64,10 +64,16 @@ def make_id(path, name, dob, id_number):
     c.save()
 
 
-def make_unreadable(path, source_pdf):
-    png_prefix = source_pdf.replace(".pdf", "")
-    subprocess.run(["pdftoppm", "-png", "-r", "100", source_pdf, png_prefix], check=True)
-    png_path = f"{png_prefix}-1.png"
+def make_unreadable(path):
+    img = Image.new("L", (1700, 2200), color=235)
+    draw = ImageDraw.Draw(img)
+    for y in range(300, 2000, 55):
+        smudge = 200 - (y % 40)
+        draw.line([(120, y), (1550, y - 15)], fill=smudge, width=6)
+    draw.rectangle([80, 80, 1620, 2120], outline=190, width=3)
+
+    png_path = path.replace(".pdf", ".png")
+    img.save(png_path)
 
     c = canvas.Canvas(path, pagesize=letter)
     c.drawImage(png_path, 0, 0, width=612, height=792)
@@ -111,10 +117,7 @@ def main():
         2025, "Carlos Mendez", "XXX-XX-9999", "Pinewood Retail", 41000,
     )
 
-    make_unreadable(
-        os.path.join(OUT_DIR, "unreadable_scan.pdf"),
-        os.path.join(OUT_DIR, "Luis_W2_2025_HarborviewLogistics.pdf"),
-    )
+    make_unreadable(os.path.join(OUT_DIR, "unreadable_scan.pdf"))
 
     print("fixtures written to", OUT_DIR)
 
