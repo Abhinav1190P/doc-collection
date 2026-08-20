@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}{{ household.name }}{% endblock %}
+{% block content %}
+
+  <div class="page-header">
+    <div>
+      <h1>{{ household.name }}</h1>
+      <p class="muted">Tax year {{ household.tax_year }} &middot; {{ household.filing_status.replace('_', ' ') }}</p>
+    </div>
+    <form method="post" action="{{ url_for('main.derive', household_id=household.id) }}">
+      <button type="submit">Re-derive checklist</button>
+    </form>
+  </div>
+
+  <section class="card">
+    <h2>People</h2>
+    <ul class="people-list">
+      {% for p in household.people %}
+        <li>{{ p.full_name }} <span class="tag">{{ p.role }}</span></li>
+      {% endfor %}
+    </ul>
+    <details>
+      <summary>Add person</summary>
+      <form method="post" action="{{ url_for('main.add_person', household_id=household.id) }}" class="inline-form">
+        <input type="text" name="first_name" placeholder="First name" required>
+        <input type="text" name="last_name" placeholder="Last name" required>
+        <select name="role">
+          <option value="taxpayer">Taxpayer</option>
+          <option value="spouse">Spouse</option>
+          <option value="dependent">Dependent</option>
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </details>
+    <details>
+      <summary>Disclose employment</summary>
+      <form method="post" action="{{ url_for('main.add_employment', household_id=household.id) }}" class="inline-form">
+        <select name="person_id" required>
+          {% for p in household.people %}
+            <option value="{{ p.id }}">{{ p.full_name }}</option>
+          {% endfor %}
+        </select>
+        <input type="number" name="tax_year" placeholder="Tax year" value="{{ household.tax_year }}" required>
+        <input type="text" name="employer_name" placeholder="Employer (optional)">
+        <input type="text" name="date_range_note" placeholder="e.g. Jan–May 2025 (optional)">
+        <button type="submit">Add</button>
+      </form>
+      <p class="hint">Use this to record a job the client didn't mention until now. The checklist re-derives automatically.</p>
+    </details>
+  </section>
+
+  <section class="card attention">
+    <h2>Needs attention ({{ needs_review|length }})</h2>
+    {% if needs_review %}
+      <table class="list-table">
+        <thead><tr><th>File</th><th>Guess</th><th>Confidence</th><th>Why it's flagged</th><th></th></tr></thead>
+        <tbody>
+          {% for d in needs_review %}
+            <tr>
+              <td>{{ d.original_filename }}</td>
+              <td>{{ d.guessed_kind }}{% if d.guessed_tax_year %} &middot; {{ d.guessed_tax_year }}{% endif %}</td>
+              <td>{{ (d.confidence * 100)|round|int }}%</td>
+              <td>{{ d.review_note }}</td>
+              <td><a href="{{ url_for('main.review_document', document_id=d.id) }}">Review</a></td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Nothing waiting on review.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Outstanding ({{ outstanding|length }})</h2>
+    {% if outstanding %}
+      <table class="list-table">
+        <thead><tr><th>Document</th><th>Kind</th><th></th></tr></thead>
+        <tbody>
+          {% for r in outstanding %}
+            <tr>
+              <td>{{ r.label }}{% if r.source == 'manual' %} <span class="tag">manual</span>{% endif %}</td>
+              <td>{{ r.kind }}</td>
+              <td>
+                <form method="post" action="{{ url_for('main.dismiss_requirement', requirement_id=r.id) }}" class="inline-action">
+                  <button type="submit">Not needed</button>
+                </form>
+                <form method="post" action="{{ url_for('main.remove_requirement', requirement_id=r.id) }}" class="inline-action">
+                  <button type="submit">Wrong entry</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p class="muted">Nothing outstanding.</p>
+    {% endif %}
+
+    <details>
+      <summary>Add requirement manually</summary>
+      <form method="post" action="{{ url_for('main.add_manual_requirement', household_id=household.id) }}" class="inline-form">
+        <input type="text" name="label" placeholder="e.g. 1099-NEC — Ana Rivera" required>
+        <select name="kind">
+          <option value="OTHER">Other</option>
+          <option value="W2">W2</option>
+          <option value="FORM_1040">Form 1040</option>
+          <option value="GOVERNMENT_ID">Government ID</option>
+        </select>
+        <select name="person_id">
+          <option value="">(household-level)</option>
+          {% for p in household.people %}
+            <option value="{{ p.id }}">{{ p.full_name }}</option>
+          {% endfor %}
+        </select>
+        <button type="submit">Add</button>
+      </form>
+    </details>
+  </section>
+
+  <section class="card">
+    <h2>Received ({{ satisfied|length }})</h2>
+    {% if satisfied %}
+      <ul class="plain-list">
+        {% for r in satisfied %}<li>{{ r.label }}</li>{% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">Nothing received yet.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Add document</h2>
+    <form method="post" action="{{ url_for('main.upload_document', household_id=household.id) }}" enctype="multipart/form-data" class="inline-form">
+      <input type="file" name="file" accept="application/pdf" required>
+      <button type="submit">Upload</button>
+    </form>
+  </section>
+
+  {% if dismissed %}
+    <details class="card">
+      <summary>Dismissed / removed ({{ dismissed|length }})</summary>
+      <ul class="plain-list">
+        {% for r in dismissed %}
+          <li>{{ r.label }} — <span class="tag">{{ r.status }}</span>{% if r.note %} — {{ r.note }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+    </details>
+  {% endif %}
+
+{% endblock %}

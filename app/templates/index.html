@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+  <h1>Clients</h1>
+
+  <table class="list-table">
+    <thead>
+      <tr><th>Household</th><th>Tax year</th><th>Filing status</th><th></th></tr>
+    </thead>
+    <tbody>
+      {% for h in households %}
+        <tr>
+          <td>{{ h.name }}</td>
+          <td>{{ h.tax_year }}</td>
+          <td>{{ h.filing_status }}</td>
+          <td><a href="{{ url_for('main.view_household', household_id=h.id) }}">Open</a></td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">No clients yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <section class="card">
+    <h2>New client</h2>
+    <form method="post" action="{{ url_for('main.create_household') }}" class="stacked-form">
+      <label>Household name<input type="text" name="name" required></label>
+      <label>Tax year<input type="number" name="tax_year" value="2025" required></label>
+      <label>Filing status
+        <select name="filing_status">
+          <option value="joint">Married filing jointly</option>
+          <option value="single">Single</option>
+          <option value="head_of_household">Head of household</option>
+        </select>
+      </label>
+      <button type="submit">Create client</button>
+    </form>
+  </section>
+{% endblock %}

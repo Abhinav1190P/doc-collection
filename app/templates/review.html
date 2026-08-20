@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Review {{ document.original_filename }}{% endblock %}
+{% block content %}
+
+  <p><a href="{{ url_for('main.view_household', household_id=household.id) }}">&larr; back to {{ household.name }}</a></p>
+
+  <h1>{{ document.original_filename }}</h1>
+
+  <section class="card">
+    <h2>What the system guessed</h2>
+    <table class="kv-table">
+      <tr><th>Kind</th><td>{{ document.guessed_kind }}</td></tr>
+      <tr><th>Tax year</th><td>{{ document.guessed_tax_year or '—' }}</td></tr>
+      <tr><th>Person</th><td>{{ document.guessed_person.full_name if document.guessed_person else (document.guessed_owner_raw or '—') }}</td></tr>
+      <tr><th>Employer</th><td>{{ document.guessed_employer_name or '—' }}</td></tr>
+      <tr><th>Confidence</th><td>{{ (document.confidence * 100)|round|int }}%</td></tr>
+      <tr><th>Flagged because</th><td>{{ document.review_note }}</td></tr>
+    </table>
+    <h3>Extracted text (first 300 characters)</h3>
+    <pre class="snippet">{{ document.extracted_snippet or '(nothing extracted)' }}</pre>
+    <p><a href="{{ url_for('main.serve_upload', filename=document.stored_filename) }}" target="_blank">Open the file</a></p>
+  </section>
+
+  <section class="card">
+    <h2>Resolve</h2>
+    <form method="post" action="{{ url_for('main.submit_review', document_id=document.id) }}" class="stacked-form">
+      <label>Link to requirement
+        <select name="requirement_id">
+          {% for r in open_requirements %}
+            <option value="{{ r.id }}">{{ r.label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Note (optional)<input type="text" name="note"></label>
+      <div class="button-row">
+        <button type="submit" name="action" value="match">Link and mark received</button>
+        <button type="submit" name="action" value="reject" class="secondary">Not usable / reject</button>
+      </div>
+    </form>
+  </section>
+
+{% endblock %}
